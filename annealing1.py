@@ -15,7 +15,8 @@ cities = {"Strasbourg" : 0, "Nancy" : 1, "Paris" : 2, "Mulhouse" : 3, "Dijon" : 
 
 #Se define la matriz D de distancias entre ciudades
 #Como es una matriz simétrica de diagonal 0 solo he tomado la triangular inferior, para no saturar con muchos datos
-
+#NICO CREO QUE ES MUY POCO PRACTICO PONERLO ASI 
+'''
 D = [
     [150],
     [490, 280],
@@ -25,10 +26,20 @@ D = [
     [120, 210, 325, 400, 110, 370],
     [205, 120, 370, 420, 450, 185, 360]
 ]
+'''
+D = np.array([
+    [0,   156, 491, 116, 310, 249], # 0: Strasbourg
+    [156, 0,   386, 164, 219, 160], # 1: Nancy
+    [491, 386, 0,   539, 315, 411], # 2: Paris
+    [116, 164, 539, 0,   199, 134], # 3: Mulhouse
+    [310, 219, 315, 199, 0,   95],  # 4: Dijon
+    [249, 160, 411, 134, 95,  0]    # 5: Besançon
+])
 
 
 #N es el numero de ciudades
-N = len(D)+1
+#N = len(D)+1
+N = len(D)
 
 #L es el numero de posibles caminos
 #Corresponde a (N-1)! no a N! porque se fija la primera ciudad
@@ -46,17 +57,19 @@ init = 0
 #Tambien se establece como criterio que el 2do valor sea menor que el ultimo
 #Esto es para evitar, en el caso del camino cerrado, que se consideren de forma separada 2 caminos que son el mismo pero en sentido inverso: (2 4 5 1 0 3) y (2 3 0 1 5 4)
 #Si init = 2, una de sus filas sería por ejemplo: (2 3 5 0 1 4)
-J = np.array([p for p in permutations(np.arange(N)) if p[1] < p[-1] and p[0] == init])
-J = J.astype(int)
+
+#en esta linea, creamos un camino J[0,1,2,3,4,5] y hacemos todas las permutaciones posibles. Nos quedamos solo con aquellas que cumplan las dos condiciones y las ponemos en una matriz J
+J_fix = np.array([p for p in permutations(np.arange(N)) if p[1] < p[-1] and p[0] == init])
+J_fix = J_fix.astype(int) 
 
 #Para cada combinacion de ciudades, se define un camino abierto Co, que es la suma de las distancias de una ciudad a la otra
-#Para el caso anterior seria d(2->3) + d(3->5) + d(5->0)
-Co = np.zeros((L, 1))
+#Para el caso anterior seria d(2->3) + d(3->5) + d(5->0) + d(0,1) + d(1,4)
+Co_fix = np.zeros((L, 1))
 
 #El camino cerrado Cc es lo mismo pero volviendo desde la ultima posicion de nuevo a la primera
 #Siguiendo con el caso anterior, se le añadiria + d(4->2)
 #En este caso hay L/2 caminos posibles y no L porque hemos descartado los caminos recorridos en sentido contrario, lo que los reduce a la mitad
-Cc = np.zeros((L//2, 1))
+Cc_fix = np.zeros((L//2, 1))
 
 #Ahora rellenamos los vectores Co y Cc con las sumas de distancias
 #Supongamos el camino (2 3 5 0 1 4)
@@ -66,6 +79,7 @@ Cc = np.zeros((L//2, 1))
 #Para nuestro vector de caminos abiertos Co, completamos la primera mitad con d(3->...->4) + dfs que es el camino abierto hacia la derecha
 #Y completamos la segunda mitad con d(3->...->4) + dfl, que es el camino abierto hacia la izquierda
 #Asi evitamos calculos innecesarios y con un solo d(3->...->4) calculamos 3 caminos de una tacada
+'''
 for j in range(L//2):
     for i in range(1,N-1):
         Cc[j] += D[max(J[j, i], J[j, i+1])-1][min(J[j, i], J[j, i+1])] 
@@ -74,15 +88,84 @@ for j in range(L//2):
     Co[j] = Cc[j] + dfs
     Co[L//2+j] = Cc[j] + dfl
     Cc[j] += dfs + dfl
+    '''
+#yo lo veo mucho mas fácil asi nose
+for j in range(L//2):
+    # 1. Calculamos el "núcleo" del camino
+    for i in range(1, N-1):
+        # Acceso directo:
+        Cc_fix[j] += D[J_fix[j, i], J_fix[j, i+1]] 
     
+    # 2. Los enganches con la ciudad inicial
+    dfs = D[J_fix[j, 0], J_fix[j, 1]]      # Distancia Inicio -> Primera parada
+    dfl = D[J_fix[j, N-1], J_fix[j, 0]]    # Distancia Última parada -> Inicio
+    
+    # 3. Guardamos los resultados (esto se queda igual)
+    Co_fix[j] = Cc_fix[j] + dfs            # Abierto hacia adelante
+    Co_fix[L//2 + j] = Cc_fix[j] + dfl     # Abierto hacia atrás
+    Cc_fix[j] += dfs + dfl             # Cerrar el círculo
 
+    
 #Por ultimo, tanto para Co como para Cc, creamos indices con las posiciones de los caminos con minima distancia: indexCcmin, indexComin
 #Comin y Ccmin son la(s) permutacion(es) con un camino minimo, es decir, aquellas que estan en las posiciones que tenemos en los index...
 
 #Para el camino abierto Co hay que hacer un poco mas de trabajo porque solo tenemos L/2 permutaciones en J (lo que nos ahorra calculo)
 #Pero como tenemos 2 caminos abiertos (hacia la derecha y hacia la izquierda), Co tiene L elementos, asi que hay que trabajar por separado las 2 mitades
-indexComin = np.where(Co==min(Co))[0]
-Comin = np.array([J[i] if i < L//2 else np.concatenate(([init], J[i-L//2][:0:-1])) for i in indexComin])
+indexComin_fix = np.where(Co_fix==min(Co_fix))[0] #Lista con los números de las filas donde la distancia es mín
+Comin_fix = np.array([J_fix[i] if i < L//2 else np.concatenate(([init], J_fix[i-L//2][:0:-1])) for i in indexComin_fix])
 
-indexCcmin = np.where(Cc==min(Cc))[0]
-Ccmin = np.array([J[i] for i in indexCcmin])
+indexCcmin_fix = np.where(Cc_fix==min(Cc_fix))[0]
+Ccmin_fix = np.array([J_fix[i] for i in indexCcmin_fix])
+
+#Ahora nos falta hallar el camino mas corto pero sin fijar el punto de inicio
+
+def calculate_route_distance(route, D):
+    """
+    Calcula la distancia total de una ruta específica.
+    'route' es una lista de ciudades J y 'matrix' es la matriz D.
+    """
+    total_dist = 0
+    # Recorremos la ruta sumando la distancia entre cada par de ciudades
+    for i in range(len(route) - 1):
+        total_dist += D[route[i], route[i+1]]
+    return total_dist
+
+
+# Generamos todas las permutaciones posibles de las 6 ciudades (6! = 720)
+# Usamos la condición p[0] < p[-1] para no calcular el camino inverso. La llamo J_free porque el inicio es libre
+J_free = np.array([p for p in permutations(np.arange(N)) if p[0] < p[-1]])
+
+# Creamos un vector de ceros para guardar la distancia de cada una de estas 360 rutas únicas
+Co_free = np.zeros(len(J_free))
+
+# Calculamos la distancia de cada ruta usando nuestra función 'calculate_route_distance'
+for i in range(len(J_free)):
+    Co_free[i] = calculate_route_distance(J_free[i], D)
+
+# Buscamos los índices del mínimo 
+indexComin_free = np.where(Co_free == min(Co_free))[0]
+
+# 5. Buscamos qué ruta(s) tienen esa distancia mínima
+Comin_free = J_free[indexComin_free]
+
+
+print("\n" + "="*30)
+print("RESULTS")
+print("="*30)
+
+# Resultados Camino CERRADO
+print(f"\nBest CLOSED PATH (FIX Start): {np.min(Cc_fix)} km")
+print(f"Optimal Route(s): {Ccmin_fix}")
+
+print("-" * 30)
+
+# Resultados Camino ABIERTO
+print(f"Best OPEN PATH (Fix Start): {np.min(Co_fix)} km")
+print(f"Optimal Route(s): {Comin_fix}")
+print("="*30 + "\n")
+
+# Resultados Camino ABIERTO sin fijar inicio
+print("-" * 30)
+print(f"Absolute Best OPEN PATH (Flexible Start): {np.min(Co_free)} km")
+print(f"Optimal Route(s): {Comin_free}")
+print("="*30 + "\n")
