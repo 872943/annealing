@@ -192,6 +192,7 @@ print(f"Optimal Route(s): {Comin_free}")
 print("="*30 + "\n")
 
 #%%SIMULATED ANNEALING:
+#a
 
 #PARAMETERS (beta es inversamente proporcional a T)
 beta = 0.01          # Empezamos con una beta pequeña (sistema muy caliente)
@@ -264,6 +265,3 @@ print("="*35)
 print(f"Best Route found: {best_route}")
 print(f"Distance: {best_dist} km")
 print(f"Final Beta reaching: {beta:.2f}")
-
-
-#FALTA 
