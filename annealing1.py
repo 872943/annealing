@@ -8,7 +8,40 @@ Created on Thu Mar 26 00:49:54 2026
 import numpy as np
 from itertools import permutations
 import math
+import random
 
+#%%FUNCTIONS
+def calculate_route_distance(route, D, is_closed_path):
+    """
+    Calcula la distancia total de una ruta específica.
+    'route' es una lista de ciudades J y 'matrix' es la matriz D.
+    """
+    total_dist = 0
+    # Recorremos la ruta sumando la distancia entre cada par de ciudades
+    for i in range(len(route) - 1):
+        total_dist += D[route[i], route[i+1]]
+
+    if is_closed_path: # Si la variable que le pasamos es True, suma la vuelta
+        total_dist += D[route[-1], route[0]]
+    return total_dist
+
+
+def swap_cities(route, is_start_fixed):
+    # Creamos una copia para no liarla con la ruta original
+    new_path = route.copy()
+    
+    # Elegimos dos índices al azar 
+    # Si el inicio es fijo, el primer índice que podemos elegir es el 1. (del 1 al final, saltándonos el 0)
+    # Si es libre, el primer índice es el 0.
+    # range(1, 6) nos da los índices 1, 2, 3, 4, 5
+    start_idx = 1 if is_start_fixed else 0
+    idx1, idx2 = random.sample(range(start_idx, len(route)), 2)
+    
+    # El truco de Python para intercambiar valores en una línea:
+    new_path[idx1], new_path[idx2] = new_path[idx2], new_path[idx1]
+    
+    return new_path
+#%%DATA:
 #Se le asigna a cada ciudad un numero
 #Definir el diccionario este realmente no ayuda mucho xD
 cities = {"Strasbourg" : 0, "Nancy" : 1, "Paris" : 2, "Mulhouse" : 3, "Dijon" : 4, "Besancon" : 5}
@@ -36,7 +69,7 @@ D = np.array([
     [249, 160, 411, 134, 95,  0]    # 5: Besançon
 ])
 
-
+#%%PRIMERA PARTE:
 #N es el numero de ciudades
 #N = len(D)+1
 N = len(D)
@@ -119,18 +152,6 @@ Ccmin_fix = np.array([J_fix[i] for i in indexCcmin_fix])
 
 #Ahora nos falta hallar el camino mas corto pero sin fijar el punto de inicio
 
-def calculate_route_distance(route, D):
-    """
-    Calcula la distancia total de una ruta específica.
-    'route' es una lista de ciudades J y 'matrix' es la matriz D.
-    """
-    total_dist = 0
-    # Recorremos la ruta sumando la distancia entre cada par de ciudades
-    for i in range(len(route) - 1):
-        total_dist += D[route[i], route[i+1]]
-    return total_dist
-
-
 # Generamos todas las permutaciones posibles de las 6 ciudades (6! = 720)
 # Usamos la condición p[0] < p[-1] para no calcular el camino inverso. La llamo J_free porque el inicio es libre
 J_free = np.array([p for p in permutations(np.arange(N)) if p[0] < p[-1]])
@@ -140,7 +161,7 @@ Co_free = np.zeros(len(J_free))
 
 # Calculamos la distancia de cada ruta usando nuestra función 'calculate_route_distance'
 for i in range(len(J_free)):
-    Co_free[i] = calculate_route_distance(J_free[i], D)
+    Co_free[i] = calculate_route_distance(J_free[i], D, False)
 
 # Buscamos los índices del mínimo 
 indexComin_free = np.where(Co_free == min(Co_free))[0]
@@ -169,3 +190,80 @@ print("-" * 30)
 print(f"Absolute Best OPEN PATH (Flexible Start): {np.min(Co_free)} km")
 print(f"Optimal Route(s): {Comin_free}")
 print("="*30 + "\n")
+
+#%%SIMULATED ANNEALING:
+
+#PARAMETERS (beta es inversamente proporcional a T)
+beta = 0.01          # Empezamos con una beta pequeña (sistema muy caliente)
+beta_max = 10.0      # Pararemos cuando la beta sea alta (sistema frío)
+beta_growth = 1.001  # En cada paso, multiplicaremos beta por esto para que crezca poco a poco
+#Estos resultados los vamos a comparar a los calculados mediante la 'fuerza bruta', vamos el codigo de antes. Hay tres resultados
+#que comparar, la idea es poder hacer todo con el mismo código, simplemente cambiando estos parámetros de abajo.
+is_closed_path = True   # ¿Volvemos al inicio? (True/False)
+is_start_fixed = True   # ¿Empezamos siempre en Estrasburgo? (True/False)
+
+
+# Generamos una ruta inicial según la configuración
+if is_start_fixed:
+    cities_to_permute = list(range(1, N)) # Creamos una lista con las ciudades sin contar estrasburgo
+    random.shuffle(cities_to_permute) # Las desordenamos al azar
+    current_route = np.array([0] + cities_to_permute) # Le añadimos a la ruta Estrasbuego como primera ciudad 
+else:
+    all_cities = list(range(N))
+    random.shuffle(all_cities)
+    current_route = np.array(all_cities)
+
+
+# Calculamos su distancia inicial
+current_dist = calculate_route_distance(current_route, D, is_closed_path)
+
+# Vamos a ir guardando la mejor ruta junto con su distancia mínima en una variable 
+best_route = current_route.copy()
+best_dist = current_dist
+
+#Vamos con el algoritmo de metropolis
+while beta < beta_max:
+    # Propongo un cambio (Swap)
+    # Importante: swap_cities debe elegir índices entre 1 y (N-1) para no mover el [0]
+    new_route = swap_cities(current_route, is_start_fixed) 
+    new_dist = calculate_route_distance(new_route, D, is_closed_path)
+    
+    # Calculamos la diferencia de "energía" (distancia)
+    delta_E = new_dist - current_dist
+    
+    # Criterio de Metrópolis: decidicmo si aceptamos o no el cambio
+    if delta_E <= 0:
+        accept = True
+    else:
+        # La ruta es peor, pero vemos si la aceoptamos o no
+        # Generamos un número aleatorio entre 0 y 1
+        r = random.random()
+        
+        # Calculamos el umbral de aceptación
+        umbral = math.exp(-beta * delta_E)
+        
+        if r < umbral:
+            accept = True  # Aceptamos una ruta peor para seguir explorando
+        else:
+            accept = False # No la aceptamos
+    if accept:
+        current_route = new_route
+        current_dist = new_dist
+        
+        # Vemos si la ruta que acabamos de aceptar es la mejor que hemos visto hasta ahora
+        if current_dist < best_dist:
+            best_dist = current_dist
+            best_route = current_route.copy()
+    # Hacemos que el sistema se enfríe un poquito para la siguiente iteración
+    beta = beta * beta_growth
+
+# --- RESULTADOS FINALES ---
+print("\n" + "="*35)
+print("      ANNEALING COMPLETE")
+print("="*35)
+print(f"Best Route found: {best_route}")
+print(f"Distance: {best_dist} km")
+print(f"Final Beta reaching: {beta:.2f}")
+
+
+#FALTA 
