@@ -490,10 +490,10 @@ plt.title(f'Best Distance vs Corrida for Niter')
 plt.legend()
 plt.show()
 '''
-'''
+
 
 #vamos a descubrir cual es el mejor camino cerrado sin inicio fijo
-is_closed_path = True
+is_closed_path = False
 is_start_fixed = False
 #en el array vamos a poner para cada iteraccion, la distancia minima y luego los numeros de la ruta que corresponden a esa distancia minima, para poder luego comparar con el resultado de la fuerza bruta y ver si coincide o no.
 mejor_ruta=np.zeros((50, N_M+1)) #50 filas, N_M+1 columnas (la primera para la distancia y las siguientes para la ruta)
@@ -508,20 +508,21 @@ for p in range(50):
 
 minima_distancia = np.min(mejor_ruta[:,0])
 print(f"Mejor distancia encontrada: {minima_distancia} km")
-'''
+
 
 
 #queremos ver cual es la ruta que corresponde a esa distancia minima, para compararla con el resultado de la fuerza bruta
-#ruta_correspondiente = mejor_ruta[mejor_ruta[:,0] == minima_distancia, 1:].astype(int)
-#print(f"Ruta correspondiente a la mejor distancia: {ruta_correspondiente}")
+ruta_correspondiente = mejor_ruta[mejor_ruta[:,0] == minima_distancia, 1:].astype(int)
+print(f"Ruta correspondiente a la mejor distancia: {ruta_correspondiente}")
 
+'''
 ciudades = list(data_mundo.keys())
-perm = [0, 3, 17, 16, 15, 14, 13, 12, 11, 10, 8, 9, 7, 6, 5, 4, 2, 1]
+perm = [ 0 , 1 , 2 , 3 , 17 , 16 , 15 , 14 , 13 , 11 , 12 , 4 , 5 , 6 , 7 , 9 , 8 , 10 ]
 
 ruta = [ciudades[i] for i in perm]
 
 print(ruta)
-
+'''
 
 
 
