@@ -122,7 +122,7 @@ def metropolis (beta, beta_max,beta_growth, Niter, D,current_route, is_closed_pa
                     best_route = current_route.copy()
             # Hacemos que el sistema se enfríe un poquito para la siguiente iteración
         
-        if (cont%20==0):
+        if ((cont<200 and cont%5==0) or cont%10==0 ):
             beta_values.append(beta)
             best_distances.append(best_dist)
 
@@ -156,7 +156,7 @@ def create_matrix_distances(city_data):
 #%%DATA:
 #Se le asigna a cada ciudad un numero
 #Definir el diccionario este realmente no ayuda mucho xD
-cities = {"Strasbourg" : 0, "Nancy" : 1, "Paris" : 2, "Mulhouse" : 3, "Dijon" : 4, "Besancon" : 5}
+cities = {"Strasbourg" : 0, "Nancy" : 1, "Paris" : 2, "Mulhouse" : 3, "Dijon" : 4, "Besancon" : 5} 
 
 #Se define la matriz D de distancias entre ciudades
 #Como es una matriz simétrica de diagonal 0 solo he tomado la triangular inferior, para no saturar con muchos datos
@@ -235,7 +235,7 @@ for j in range(L//2):
     Co[j] = Cc[j] + dfs
     Co[L//2+j] = Cc[j] + dfl
     Cc[j] += dfs + dfl
-    
+ '''   
     #yo lo veo mucho mas fácil asi nose
 for j in range(L//2):
     # 1. Calculamos el "núcleo" del camino
@@ -305,7 +305,7 @@ print(f"Absolute Best OPEN PATH (Flexible Start): {np.min(Co_free)} km")
 print(f"Optimal Route(s): {Comin_free}")
 print("="*30 + "\n")
 
-'''
+
 
 
 
@@ -334,11 +334,11 @@ current_route=current_route_func(N, is_start_fixed)
 
 
 Niter=100
-#best_route, best_dist, beta_values, best_distances = metropolis(beta, beta_max, beta_growth, Niter,D, current_route, is_closed_path, is_start_fixed)
+best_route, best_dist, beta_values, best_distances = metropolis(beta, beta_max, beta_growth, 1,D, current_route, is_closed_path, is_start_fixed)
     
     
     
-'''
+
 # --- RESULTADOS FINALES ---
 print("\n" + "="*35)
 print("      ANNEALING COMPLETE")
@@ -349,17 +349,17 @@ print(f"Final Beta reaching: {beta:.2f}")
 
 #print(beta_values)
 
-'''
+
 '''
 #ploteamos la mejor energia frente a la temperatura
 plt.figure(figsize=(10, 6))
 plt.plot(beta_values, (best_distances-best_distances[-1])/best_distances[-1], marker='o', linestyle='--')
 plt.xlabel('Beta')
-plt.ylabel('Best Distance')
+plt.ylabel(r"$\sigma_{Best\ Distance}$")
 plt.title('Annealing Progress')
 plt.show()
-'''
 
+'''
 
 #para medir el tiempo ponemos en la terminal: Measure-Command { python metropolis.py }
 
@@ -410,17 +410,120 @@ beta = 0.01          # Empezamos con una beta pequeña (sistema muy caliente)
 beta_max = 10.0      # Pararemos cuando la beta sea alta (sistema frío)
 beta_growth = 0.01  # En cada paso, multiplicaremos beta por esto para
 curren_route_M =current_route_func(N_M, is_start_fixed)
+best_dist_M_array =[]
 
+Nite_array=[1,20, 50, 100, 500, 1000]
+'''
 
-best_route_M, best_dist_M, beta_values_M, best_distances_M = metropolis(beta, beta_max, beta_growth, 10, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
+for Niter in Nite_array:
+    best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, Niter, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
+    best_dist_M_array.append(beta_dist_M)
+
+'''
+
+'''
 
 #ploteamos la mejor energia frente a la temperatura
 plt.figure(figsize=(10, 6))
-plt.plot(beta_values_M, (best_distances_M-best_distances_M[-1])/best_distances_M[-1], marker='o', linestyle='--')
-plt.xlabel('Beta')
-plt.ylabel('Best Distance')
-plt.title('Annealing Progress')
-plt.show()
+for fila in best_dist_M_array:
+    plt.plot(beta_values_M, (fila-fila[-1])/fila[-1], marker='o', linestyle='--', ms=2, label=f'Niter={Nite_array[best_dist_M_array.index(fila)]}')
 
-print(best_route_M)
-print(best_dist_M)
+#plt.plot(beta_values_M, (best_distances_M-best_distances_M[-1])/best_distances_M[-1], marker='o', linestyle='--')
+plt.xlabel('Beta')
+plt.ylabel(r"$\sigma_{Best\ Distance}$")
+plt.title('Annealing Progress for different Niter')
+plt.legend()
+plt.show()
+'''
+
+'''
+plt.figure(figsize=(10, 6))
+plt.plot(Nite_array, [dist[-1] for dist in best_dist_M_array], marker='o', linestyle='--')
+plt.xlabel('Niter')
+plt.ylabel('Best Distance at Final Beta')
+plt.title('Best Distance vs Niter')
+plt.show()
+'''
+#quiero hacer una grafica con la distancia final en función de Niter, para ver si mejora o no a medida que aumentamos el numero de iteraciones.
+#pero quiero hacer para cada Niter varias corridas, para ver la variabilidad de los resultados. Para eso, voy a hacer un bucle dentro del bucle de Niter, que haga varias corridas y guarde el mejor resultado de cada una. Luego haré una gráfica con el mejor resultado de cada corrida para cada Niter.
+'''
+plt.figure(figsize=(10, 6))
+
+for Niter in Nite_array:
+    best_dist_M_array =[]
+    for corrida in range(10): # Hacemos 10 corridas para cada Niter
+        best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, Niter, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
+        best_dist_M_array.append(beta_dist_M[-1]) # Guardamos solo la distancia final de cada corrida
+    
+    plt.plot(range(10), best_dist_M_array, marker='o', linestyle='--', label=f'Niter={Niter}') # Ploteamos la distancia final de cada corrida para este Niter
+    print(Niter)
+
+
+plt.xlabel('Corrida')
+plt.ylabel('Best Distance at Final Beta')
+plt.title(f'Best Distance vs Corrida for Niter')
+plt.legend()
+plt.show()
+'''
+'''
+#fuerte dependencia con la semilla, asi que vamos a fijarla para poder comparar resultados entre diferentes Niter
+
+plt.figure(figsize=(10, 6))
+
+for Niter in Nite_array:
+    random.seed(42)
+    
+    best_dist_M_array =[]
+    for corrida in range(10): # Hacemos 10 corridas para cada Niter
+        random.seed(42)
+        current_route_M = current_route_func(N_M, is_start_fixed)
+        best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, Niter, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
+        best_dist_M_array.append(beta_dist_M[-1]) # Guardamos solo la distancia final de cada corrida
+    
+    plt.plot(range(10), best_dist_M_array, marker='o', linestyle='--', label=f'Niter={Niter}') # Ploteamos la distancia final de cada corrida para este Niter
+    print(Niter)
+
+
+plt.xlabel('Corrida')
+plt.ylabel('Best Distance at Final Beta')
+plt.title(f'Best Distance vs Corrida for Niter')
+plt.legend()
+plt.show()
+'''
+'''
+
+#vamos a descubrir cual es el mejor camino cerrado sin inicio fijo
+is_closed_path = True
+is_start_fixed = False
+#en el array vamos a poner para cada iteraccion, la distancia minima y luego los numeros de la ruta que corresponden a esa distancia minima, para poder luego comparar con el resultado de la fuerza bruta y ver si coincide o no.
+mejor_ruta=np.zeros((50, N_M+1)) #50 filas, N_M+1 columnas (la primera para la distancia y las siguientes para la ruta)
+
+for p in range(50):
+    print(p)
+    current_route_M = current_route_func(N_M, is_start_fixed)
+    best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, 500, D_mundo, current_route_M, is_closed_path, is_start_fixed)
+    mejor_ruta[p,0]=best_dist_M
+    mejor_ruta[p,1:]=best_route_M
+
+
+minima_distancia = np.min(mejor_ruta[:,0])
+print(f"Mejor distancia encontrada: {minima_distancia} km")
+'''
+
+
+#queremos ver cual es la ruta que corresponde a esa distancia minima, para compararla con el resultado de la fuerza bruta
+#ruta_correspondiente = mejor_ruta[mejor_ruta[:,0] == minima_distancia, 1:].astype(int)
+#print(f"Ruta correspondiente a la mejor distancia: {ruta_correspondiente}")
+
+ciudades = list(data_mundo.keys())
+perm = [0, 3, 17, 16, 15, 14, 13, 12, 11, 10, 8, 9, 7, 6, 5, 4, 2, 1]
+
+ruta = [ciudades[i] for i in perm]
+
+print(ruta)
+
+
+
+
+
+
