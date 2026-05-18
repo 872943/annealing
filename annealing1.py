@@ -305,7 +305,7 @@ Niter=100
 best_route, best_dist, beta_values, best_distances = metropolis(beta, beta_max, beta_growth, 1,D, current_route, is_closed_path, is_start_fixed)
     
 
-# --- RESULTADOS FINALES ---
+# --- FINAL RESULTS ---
 print("\n" + "="*35)
 print("      ANNEALING COMPLETE")
 print("="*35)
@@ -395,7 +395,7 @@ curren_route_M =current_route_func(N_M, is_start_fixed)
 best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, Niter, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
     
 
-# --- RESULTADOS FINALES ---
+# --- FINAL RESULTS ---
 print("\n" + "="*35)
 print("      ANNEALING COMPLETE FOR WORLD CITIES")
 print("="*35)
@@ -500,7 +500,7 @@ minima_distancia_index = np.where(mejor_ruta[:,0] == minima_distancia)[0][0]
 best_route_M = mejor_ruta[minima_distancia_index, 1:].astype(int)
     
 
-# --- RESULTADOS FINALES ---
+# --- FINAL RESULTS ---
 print("\n" + "="*35)
 print("      ANNEALING COMPLETE FOR WORLD CITIES")
 print("="*35)
