@@ -466,9 +466,9 @@ for Niter in Nite_array:
     print(Niter)
 
 
-plt.xlabel('Corrida')
+plt.xlabel('Run')
 plt.ylabel('Best Distance at Final Beta')
-plt.title(f'Best Distance vs Corrida for Niter')
+plt.title(f'Best Distance vs Run for Niter')
 plt.legend()
 plt.show()
 '''
