@@ -505,7 +505,7 @@ print("\n" + "="*35)
 print("      ANNEALING COMPLETE FOR WORLD CITIES")
 print("="*35)
 print(f"\nBest CLOSED PATH: {best_route_M}")
-print(f"Distance: {best_dist_M} m")
+print(f"Distance: {minima_distancia} m")
 print("-" * 30)
 
 
@@ -528,7 +528,7 @@ best_route_M = mejor_ruta[minima_distancia_index, 1:].astype(int)
 
 
 print(f"Best OPEN PATH (Fix Start):  {best_route_M}")
-print(f"Distance: {best_dist_M} m")
+print(f"Distance: {minima_distancia} m")
 print("="*30 + "\n")
 
 
@@ -549,7 +549,7 @@ best_route_M = mejor_ruta[minima_distancia_index, 1:].astype(int)
 
 
 print(f"Absolute Best OPEN PATH (Flexible Start):  {best_route_M}")
-print(f"Distance: {best_dist_M} m")
+print(f"Distance: {minima_distancia} m")
 print("="*30 + "\n")
 
 
