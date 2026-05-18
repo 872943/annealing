@@ -14,30 +14,28 @@ import matplotlib.pyplot as plt
 #%%FUNCTIONS
 def calculate_route_distance(route, D, is_closed_path):
     """
-    Calcula la distancia total de una ruta específica.
-    'route' es una lista de ciudades J y 'matrix' es la matriz D.
+    Calculate the total distance of a specific route.
+    'route' is a list of cities J and 'matrix' is the distance matrix D
     """
     total_dist = 0
-    # Recorremos la ruta sumando la distancia entre cada par de ciudades
+    # We loop through the route, summing the distance between each pair of cities
     for i in range(len(route) - 1):
         total_dist += D[route[i], route[i+1]]
 
-    if is_closed_path: # Si la variable que le pasamos es True, suma la vuelta
+    if is_closed_path: # If the value of is_closed_path is True, we need to add the distance from the last city back to the first one to close the loop
         total_dist += D[route[-1], route[0]]
     return total_dist
 
 def swap_cities(route, is_start_fixed):
-    # Creamos una copia para no liarla con la ruta original
     new_path = route.copy()
     
-    # Elegimos dos índices al azar 
-    # Si el inicio es fijo, el primer índice que podemos elegir es el 1. (del 1 al final, saltándonos el 0)
-    # Si es libre, el primer índice es el 0.
-    # range(1, 6) nos da los índices 1, 2, 3, 4, 5
+    # We choose two random indices to swap, ensuring we don't swap the starting city if it's fixed.
+    # If the start is fixed, the first index we can choose is 1. (from 1 to the end, skipping 0)
+    # If it's free, the first index is 0.
+    # range(1, 6) gives us the indices 1, 2, 3, 4, 5
     start_idx = 1 if is_start_fixed else 0
     idx1, idx2 = random.sample(range(start_idx, len(route)), 2)
     
-    # El truco de Python para intercambiar valores en una línea:
     new_path[idx1], new_path[idx2] = new_path[idx2], new_path[idx1]
     
     return new_path
@@ -56,11 +54,11 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     return R*np.arccos(np.dot(u1,u2))
 
 def current_route_func(N, is_start_fixed):
-    # Generamos una ruta inicial según la configuración
+    #We generate an initial route according to the configuration
     if is_start_fixed:
-        cities_to_permute = list(range(1, N)) # Creamos una lista con las ciudades sin contar estrasburgo
-        random.shuffle(cities_to_permute) # Las desordenamos al azar
-        current_route = np.array([0] + cities_to_permute) # Le añadimos a la ruta Estrasbuego como primera ciudad 
+        cities_to_permute = list(range(1, N)) # We create a list excluding Strasbourg (0)
+        random.shuffle(cities_to_permute) 
+        current_route = np.array([0] + cities_to_permute) # We put Strasbourg at the beginning and then add the permuted cities
     else:
         all_cities = list(range(N))
         random.shuffle(all_cities)
@@ -74,66 +72,63 @@ def metropolis (beta, beta_max,beta_growth, Niter, D,current_route, is_closed_pa
     current_dist = best_dist
 
     # A plot of C(Jopt) vs T is usually instructive.
-    #asi que nos vamos a ir guardando tmb la mejor distancia para algunas temps para plotearlo luego.
+    #So, we will save the values of beta and the best distance at each step to be able to plot them later.
     cont=0
     beta_values = []
     best_distances = []
 
 
 
-    #Vamos con el algoritmo de metropolis
+    #Let's start with the metropolis algorithm
     while beta < beta_max:
-        #eminbeta=current_dist
 
         for nn in range(Niter):
 
-            # Propongo un cambio (Swap)
-            # Importante: swap_cities debe elegir índices entre 1 y (N-1) para no mover el [0]
+            # We propose a change (swap)
 
             new_route = swap_cities(current_route, is_start_fixed) 
             new_dist = calculate_route_distance(new_route, D, is_closed_path)
             
-            # Calculamos la diferencia de "energía" (distancia)
+            # we calculate the change in energy (distance) that this swap would produce
             delta_E = new_dist - current_dist
             
-            # Criterio de Metrópolis: decidicmo si aceptamos o no el cambio
+            # Metropolis criterion: if the new route is better (delta_E <= 0), we accept it. 
             if delta_E <= 0:
                 accept = True
             else:
-                # La ruta es peor, pero vemos si la aceoptamos o no
-                # Generamos un número aleatorio entre 0 y 1
+                # The route is worse, but we see if we accept it or not
+                # We generate a random number between 0 and 1
                 r = random.random()
-                
-                # Calculamos el umbral de aceptación
+                # We calculate the acceptance probability (umbral) using the Boltzmann factor
                 umbral = math.exp(-beta * delta_E)
                 
                 if r < umbral:
-                    accept = True  # Aceptamos una ruta peor para seguir explorando
+                    accept = True  
                 else:
-                    accept = False # No la aceptamos
+                    accept = False 
             if accept:
                 current_route = new_route
                 current_dist = new_dist
                 
-                # Vemos si la ruta que acabamos de aceptar es la mejor que hemos visto hasta ahora
+                # We check if this new route is the best one we have found so far
                 if current_dist < best_dist:
                     best_dist = current_dist
                     best_route = current_route.copy()
-            # Hacemos que el sistema se enfríe un poquito para la siguiente iteración
+        
         
         if ((cont<200 and cont%5==0) or cont%10==0 ):
             beta_values.append(beta)
             best_distances.append(best_dist)
 
-        
+        #We cool down the system by increasing beta
         beta = beta + beta_growth
         cont+=1
     return best_route, best_dist, beta_values, best_distances
 
 def create_matrix_distances(city_data):
     """
-    Crea una matriz de distancias entre ciudades usando la fórmula de Haversine.
-    'city_data' es un diccionario con el nombre de la ciudad como clave y una tupla (latitud, longitud) como valor.
+    Create a distance matrix between cities using the Haversine formula.
+     'city_data' is a dictionary with the city name as key and a tuple (latitude, longitude) as value.
     """
     cities = list(city_data.keys())
     N = len(cities)
@@ -144,7 +139,7 @@ def create_matrix_distances(city_data):
             lat1, lon1 = city_data[cities[i]]
             lat2, lon2 = city_data[cities[j]]
             D[i, j] = haversine_distance(lat1, lon1, lat2, lon2)
-            D[j, i] = D[i, j]  # La matriz es simétrica
+            D[j, i] = D[i, j]  # Symmetric matrix, distance from i to j is the same as from j to i
     
     return D
 
@@ -211,13 +206,13 @@ def brute_force(D):
     indexComin = np.zeros([1,N])
     distComin = np.zeros([1,N])
     for i in range(N):
-        disttemp = np.min(Co[:,i]) 
-        indextemp = np.where(Co[:,i]==disttemp)[0]
-        stemp = np.size(indextemp)
-        sind = indexComin.shape[0]
+        disttemp = np.min(Co[:,i])  #the minimum distance for the OPEN path starting with city i is the minimum of the column i of Co
+        indextemp = np.where(Co[:,i]==disttemp)[0] #the indices of the sortest path in the column i 
+        stemp = np.size(indextemp) #number of indices associated to the minimum distance
+        sind = indexComin.shape[0] 
         
-#The code takes into account as well the possibility of having 2 different paths with the shortest distance 
-#So in this case we enlarge the indices matrix to allow for more indices associated to minimal paths   
+        #The code takes into account as well the possibility of having 2 different paths with the shortest distance 
+        #So in this case we enlarge the indices matrix to allow for more indices associated to minimal paths   
         if stemp > sind:
             indexComin = np.append(indexComin, np.full((stemp-sind, N), np.nan), axis = 0)
             
@@ -226,7 +221,7 @@ def brute_force(D):
     
 #To determine the associated OPEN path we need to distinguish indices in the upper half of Co from those in the lower
 #Thus, we can determine if we get a "forward" or a "backward" path
-    indrow = indexComin.shape[0]
+    indrow = indexComin.shape[0] #number of rows of the indices matrix, which is the number of paths with the minimum distance among all the paths starting with city i
     indcol = indexComin.shape[1]
     Comin = np.full((indrow, indcol, N), np.nan)
     for i in range(indrow):
@@ -277,7 +272,7 @@ print("RESULTS")
 print("="*30)
 
 # CLOSED path
-print(f"\nBest CLOSED PATH (FIX Start): {distCcmin} km")
+print(f"\nBest CLOSED PATH: {distCcmin} km")
 print(f"Optimal Route(s): {Ccmin}")
 
 print("-" * 30)
@@ -298,69 +293,77 @@ print("="*30 + "\n")
 #%%SIMULATED ANNEALING:
 #a
 
-N = D.shape[0]  # Número de ciudades
+N = D.shape[0]  # Number of cities
 
-#PARAMETERS (beta es inversamente proporcional a T)
-beta = 0.01          # Empezamos con una beta pequeña (sistema muy caliente)
-beta_max = 10.0      # Pararemos cuando la beta sea alta (sistema frío)
-beta_growth = 0.01  # En cada paso, multiplicaremos beta por esto para que crezca poco a poco
-#hola, te lo he cambiado y he puesto suma para que estuviesen equidistantes las temperaturas
-#Estos resultados los vamos a comparar a los calculados mediante la 'fuerza bruta', vamos el codigo de antes. Hay tres resultados
-#que comparar, la idea es poder hacer todo con el mismo código, simplemente cambiando estos parámetros de abajo.
-is_closed_path = False   # ¿Volvemos al inicio? (True/False)
-is_start_fixed = False   # ¿Empezamos siempre en Estrasburgo? (True/False)
+#PARAMETERS (beta is proportional to 1/temperature, so a small beta means a hot system and a large beta means a cold system)
+beta = 0.01          # We start with a small beta (very hot system)
+beta_max = 10.0      # We will stop when the beta becomes large (cold system)
+beta_growth = 0.01  # At each step, we will sum this to beta to make it grow, that is, to cool down the system
+#These results we are going to compare with those calculated by 'brute force' 
+#There are three results to compare, the idea is to be able to do everything with the same code, simply changing these parameters below.
+is_closed_path = True    # Do we close the path? (True/False)
+is_start_fixed = True   # Do we always start from Strasbourg? (True/False)
 
 current_route=current_route_func(N, is_start_fixed)
 
-# Calculamos su distancia inicial
-#current_dist = calculate_route_distance(current_route, D, is_closed_path)
-
-# Vamos a ir guardando la mejor ruta junto con su distancia mínima en una variable 
-#best_route = current_route.copy()
-#best_dist = current_dist
-
-
+#Niter is the number of iterations we do at each temperature
 
 Niter=100
 best_route, best_dist, beta_values, best_distances = metropolis(beta, beta_max, beta_growth, 1,D, current_route, is_closed_path, is_start_fixed)
-    
-    
     
 
 # --- RESULTADOS FINALES ---
 print("\n" + "="*35)
 print("      ANNEALING COMPLETE")
 print("="*35)
-print(f"Best Route found: {best_route}")
+print(f"\nBest CLOSED PATH: {best_route}")
 print(f"Distance: {best_dist} km")
-print(f"Final Beta reaching: {beta:.2f}")
+print("-" * 30)
 
-#print(beta_values)
+# OPEN path starting from Strasbourg (0)
+is_closed_path = False
+best_route, best_dist, beta_values, best_distances = metropolis(beta, beta_max, beta_growth, 1,D, current_route, is_closed_path, is_start_fixed)
+
+print(f"Best OPEN PATH (Fix Start):  {best_route}")
+print(f"Distance: {best_dist} km")
+print("="*30 + "\n")
+
+is_start_fixed = False
+current_route=current_route_func(N, is_start_fixed)
+best_route, best_dist, beta_values, best_distances = metropolis(beta, beta_max, beta_growth, 1,D, current_route, is_closed_path, is_start_fixed)
+
+
+print(f"Absolute Best OPEN PATH (Flexible Start):  {best_route}")
+print(f"Distance: {best_dist} km")
+print("="*30 + "\n")
+
 
 
 '''
-#ploteamos la mejor energia frente a la temperatura
+#We plot the best distance found at each step as a function of beta, to see how the annealing process has evolved. 
+#We plot the relative improvement of the best distance compared to the final best distance, that is, (best_distance - best_distance_final)/best_distance_final, to see how much we have improved compared to the final result.
 plt.figure(figsize=(10, 6))
 plt.plot(beta_values, (best_distances-best_distances[-1])/best_distances[-1], marker='o', linestyle='--')
 plt.xlabel('Beta')
 plt.ylabel(r"$\sigma_{Best\ Distance}$")
 plt.title('Annealing Progress')
 plt.show()
-
 '''
 
-#para medir el tiempo ponemos en la terminal: Measure-Command { python metropolis.py }
+#in order to measure the time it takes to run the annealing algorithm
 
 
-#Ahora vamos a incluir mas ciudades: 
+#Now we are going to do the same but with 18 cities around the world, to see how the algorithm performs with a larger number of cities. 
 # Paris, Madrid, Athens, Helsinki, Beyrouth, New Delhi, Bangkok, Beijing, Tokyo, Seoul, Sidney, Buenos Aires,
 #Brasilia, Caracas, Mexico City, Chicago, Quebec, Reykjavik 
 
-#para definirlas, vamos a copiar sus coordenadas geográficas y luego calcular la distancia entre ellas usando la fórmula de Haversine, 
-# #que nos da la distancia en línea recta entre dos puntos en la superficie de la Tierra.
 
-#definimos un array con las coordenadas de cada ciudad (latitud, longitud)
-#ciudad, latitud, longitud
+#in order to apply the annealing algorithm to these cities, we need to define the distance matrix D for these cities.
+#we copy their geographical coordinates (latitude and longitude) and then we calculate the distance between them using the Haversine formula, 
+#which gives us the straight-line distance between two points on the surface of the Earth.
+
+#city, latitude, longitude
+
 data_mundo = {
     "Paris": (48.85727373179059, 2.3487507137355794),
     "Madrid": (40.41704657265242, -3.70803243496023),
@@ -386,55 +389,78 @@ D_mundo=create_matrix_distances(data_mundo)
 cities = list(data_mundo.keys())
 N_M = len(cities)
 
-#Ahora tenemos 18 ciudades, esto corresponde a 18! permutaciones posibles
-#En caso de camino abierto, teniendo en cuenta los caminos inversos, tendriamos que calcular
 
-No=np.exp(18*np.log(18))/2
-#print(No)
 
-#como vemos, tenemos un orden de magnitud bastante grande, por lo que no merece la pena 
+#Now we have 18 cities, so the number of possible paths is 18! = 6402373705728000, which is a very large number, 
+#so we cannot use the brute force method to find the optimal path.
 
-beta = 0.01          # Empezamos con una beta pequeña (sistema muy caliente)
-beta_max = 10.0      # Pararemos cuando la beta sea alta (sistema frío)
-beta_growth = 0.01  # En cada paso, multiplicaremos beta por esto para
+
+'''
+is_closed_path = True
+is_start_fixed = True   
 curren_route_M =current_route_func(N_M, is_start_fixed)
-best_dist_M_array =[]
+best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, Niter, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
+    
+
+# --- RESULTADOS FINALES ---
+print("\n" + "="*35)
+print("      ANNEALING COMPLETE FOR WORLD CITIES")
+print("="*35)
+print(f"\nBest CLOSED PATH: {best_route_M}")
+print(f"Distance: {best_dist_M} km")
+print("-" * 30)
+
+
+
+
+# OPEN path starting from Strasbourg (0)
+is_closed_path = False
+curren_route_M =current_route_func(N_M, is_start_fixed)
+best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, Niter, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
+
+print(f"Best OPEN PATH (Fix Start):  {best_route_M}")
+print(f"Distance: {best_dist_M} km")
+print("="*30 + "\n")
+
+
+
+
+is_start_fixed = False
+current_route=current_route_func(N_M, is_start_fixed)
+best_route_M, best_dist_M, beta_values_M, best_distances_M = metropolis(beta, beta_max, beta_growth, 1,D_mundo, current_route, is_closed_path, is_start_fixed)
+
+print(f"Absolute Best OPEN PATH (Flexible Start):  {best_route_M}")
+print(f"Distance: {best_dist_M} km")
+print("="*30 + "\n")
+
+
+
+#We can also compare the results for different values of Niter, to see how the number of iterations at each temperature affects the results.
 
 Nite_array=[1,20, 50, 100, 500, 1000]
-'''
+best_dist_M_array =[]
 
 for Niter in Nite_array:
     best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, Niter, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
     best_dist_M_array.append(beta_dist_M)
 
-'''
-
-'''
-
-#ploteamos la mejor energia frente a la temperatura
+#We plot the relative improvement to beta for different values of Niter.
 plt.figure(figsize=(10, 6))
 for fila in best_dist_M_array:
     plt.plot(beta_values_M, (fila-fila[-1])/fila[-1], marker='o', linestyle='--', ms=2, label=f'Niter={Nite_array[best_dist_M_array.index(fila)]}')
 
-#plt.plot(beta_values_M, (best_distances_M-best_distances_M[-1])/best_distances_M[-1], marker='o', linestyle='--')
 plt.xlabel('Beta')
 plt.ylabel(r"$\sigma_{Best\ Distance}$")
 plt.title('Annealing Progress for different Niter')
 plt.legend()
 plt.show()
-'''
 
-'''
-plt.figure(figsize=(10, 6))
-plt.plot(Nite_array, [dist[-1] for dist in best_dist_M_array], marker='o', linestyle='--')
-plt.xlabel('Niter')
-plt.ylabel('Best Distance at Final Beta')
-plt.title('Best Distance vs Niter')
-plt.show()
-'''
-#quiero hacer una grafica con la distancia final en función de Niter, para ver si mejora o no a medida que aumentamos el numero de iteraciones.
-#pero quiero hacer para cada Niter varias corridas, para ver la variabilidad de los resultados. Para eso, voy a hacer un bucle dentro del bucle de Niter, que haga varias corridas y guarde el mejor resultado de cada una. Luego haré una gráfica con el mejor resultado de cada corrida para cada Niter.
-'''
+
+
+#we want to see how the final distance changes as we increase Niter, to see if it improves or not as we increase the number of iterations.
+#but we want to do several runs for each Niter, to see the variability of the results. For that, I'm going to make a loop inside the Niter loop, 
+#that does several runs and saves the best result of each one. Then I'll make a graph with the best result of each run for each Niter.
+
 plt.figure(figsize=(10, 6))
 
 for Niter in Nite_array:
@@ -453,41 +479,23 @@ plt.title(f'Best Distance vs Corrida for Niter')
 plt.legend()
 plt.show()
 '''
-'''
-#fuerte dependencia con la semilla, asi que vamos a fijarla para poder comparar resultados entre diferentes Niter
-
-plt.figure(figsize=(10, 6))
-
-for Niter in Nite_array:
-    random.seed(42)
-    
-    best_dist_M_array =[]
-    for corrida in range(10): # Hacemos 10 corridas para cada Niter
-        random.seed(42)
-        current_route_M = current_route_func(N_M, is_start_fixed)
-        best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, Niter, D_mundo, curren_route_M, is_closed_path, is_start_fixed)
-        best_dist_M_array.append(beta_dist_M[-1]) # Guardamos solo la distancia final de cada corrida
-    
-    plt.plot(range(10), best_dist_M_array, marker='o', linestyle='--', label=f'Niter={Niter}') # Ploteamos la distancia final de cada corrida para este Niter
-    print(Niter)
 
 
-plt.xlabel('Corrida')
-plt.ylabel('Best Distance at Final Beta')
-plt.title(f'Best Distance vs Corrida for Niter')
-plt.legend()
-plt.show()
-'''
+#we have seen that the better route is not always the one with the largest Niter,
+#this means that the algorithm is not guaranteed to find the optimal solution, and that it can get stuck in local minima, 
+#so it has a great dependence on the initial route and on the random choices made during the process.
 
+#Finally, in order to find the best paths, we should do several runs of the algorithm, and then compare the results to find the best one among all the runs.
+#In that way, we will be able to avoid getting stuck in local minima and increase our chances of finding the global minimum, that is, the best path among all the possible paths.
+Niter=250
+ninic=100
 
-#vamos a descubrir cual es el mejor camino cerrado sin inicio fijo
-is_closed_path = False
-is_start_fixed = False
-#en el array vamos a poner para cada iteraccion, la distancia minima y luego los numeros de la ruta que corresponden a esa distancia minima, para poder luego comparar con el resultado de la fuerza bruta y ver si coincide o no.
-mejor_ruta=np.zeros((50, N_M+1)) #50 filas, N_M+1 columnas (la primera para la distancia y las siguientes para la ruta)
+#in the array mejor_ruta we are going to put for each iteration, the minimum distance and then the numbers of the route that correspond to that minimum distancet.
+mejor_ruta=np.zeros((ninic, N_M+1)) 
+is_closed_path = True
+is_start_fixed = True 
 
-for p in range(50):
-    print(p)
+for p in range(ninic):
     current_route_M = current_route_func(N_M, is_start_fixed)
     best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, 500, D_mundo, current_route_M, is_closed_path, is_start_fixed)
     mejor_ruta[p,0]=best_dist_M
@@ -495,22 +503,62 @@ for p in range(50):
 
 
 minima_distancia = np.min(mejor_ruta[:,0])
-print(f"Mejor distancia encontrada: {minima_distancia} km")
+minima_distancia_index = np.where(mejor_ruta[:,0] == minima_distancia)[0][0]
+best_route_M = mejor_ruta[minima_distancia_index, 1:].astype(int)
+    
+
+# --- RESULTADOS FINALES ---
+print("\n" + "="*35)
+print("      ANNEALING COMPLETE FOR WORLD CITIES")
+print("="*35)
+print(f"\nBest CLOSED PATH: {best_route_M}")
+print(f"Distance: {best_dist_M} km")
+print("-" * 30)
 
 
 
-#queremos ver cual es la ruta que corresponde a esa distancia minima, para compararla con el resultado de la fuerza bruta
-ruta_correspondiente = mejor_ruta[mejor_ruta[:,0] == minima_distancia, 1:].astype(int)
-print(f"Ruta correspondiente a la mejor distancia: {ruta_correspondiente}")
 
-'''
-ciudades = list(data_mundo.keys())
-perm = [ 0 , 1 , 2 , 3 , 17 , 16 , 15 , 14 , 13 , 11 , 12 , 4 , 5 , 6 , 7 , 9 , 8 , 10 ]
+# OPEN path starting from Strasbourg (0)
+is_closed_path = False
 
-ruta = [ciudades[i] for i in perm]
+for p in range(ninic):
+    current_route_M = current_route_func(N_M, is_start_fixed)
+    best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, 500, D_mundo, current_route_M, is_closed_path, is_start_fixed)
+    mejor_ruta[p,0]=best_dist_M
+    mejor_ruta[p,1:]=best_route_M
 
-print(ruta)
-'''
+
+minima_distancia = np.min(mejor_ruta[:,0])
+minima_distancia_index = np.where(mejor_ruta[:,0] == minima_distancia)[0][0]
+best_route_M = mejor_ruta[minima_distancia_index, 1:].astype(int)
+
+
+
+print(f"Best OPEN PATH (Fix Start):  {best_route_M}")
+print(f"Distance: {best_dist_M} km")
+print("="*30 + "\n")
+
+
+
+
+is_start_fixed = False
+for p in range(ninic):
+    current_route_M = current_route_func(N_M, is_start_fixed)
+    best_route_M, best_dist_M,beta_values_M,beta_dist_M = metropolis(beta, beta_max, beta_growth, 500, D_mundo, current_route_M, is_closed_path, is_start_fixed)
+    mejor_ruta[p,0]=best_dist_M
+    mejor_ruta[p,1:]=best_route_M
+
+
+minima_distancia = np.min(mejor_ruta[:,0])
+minima_distancia_index = np.where(mejor_ruta[:,0] == minima_distancia)[0][0]
+best_route_M = mejor_ruta[minima_distancia_index, 1:].astype(int)
+
+
+
+print(f"Absolute Best OPEN PATH (Flexible Start):  {best_route_M}")
+print(f"Distance: {best_dist_M} km")
+print("="*30 + "\n")
+
 
 
 
