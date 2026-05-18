@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Mar 26 00:49:54 2026
-
-@author: Nico
-"""
-
 import numpy as np
 from itertools import permutations
 import math
