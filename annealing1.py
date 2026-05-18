@@ -26,7 +26,6 @@ def calculate_route_distance(route, D, is_closed_path):
         total_dist += D[route[-1], route[0]]
     return total_dist
 
-
 def swap_cities(route, is_start_fixed):
     # Creamos una copia para no liarla con la ruta original
     new_path = route.copy()
@@ -130,7 +129,6 @@ def metropolis (beta, beta_max,beta_growth, Niter, D,current_route, is_closed_pa
         beta = beta + beta_growth
         cont+=1
     return best_route, best_dist, beta_values, best_distances
-
 
 def create_matrix_distances(city_data):
     """
@@ -300,6 +298,8 @@ print("="*30 + "\n")
 #%%SIMULATED ANNEALING:
 #a
 
+N = D.shape[0]  # Número de ciudades
+
 #PARAMETERS (beta es inversamente proporcional a T)
 beta = 0.01          # Empezamos con una beta pequeña (sistema muy caliente)
 beta_max = 10.0      # Pararemos cuando la beta sea alta (sistema frío)
@@ -307,8 +307,8 @@ beta_growth = 0.01  # En cada paso, multiplicaremos beta por esto para que crezc
 #hola, te lo he cambiado y he puesto suma para que estuviesen equidistantes las temperaturas
 #Estos resultados los vamos a comparar a los calculados mediante la 'fuerza bruta', vamos el codigo de antes. Hay tres resultados
 #que comparar, la idea es poder hacer todo con el mismo código, simplemente cambiando estos parámetros de abajo.
-is_closed_path = True   # ¿Volvemos al inicio? (True/False)
-is_start_fixed = True   # ¿Empezamos siempre en Estrasburgo? (True/False)
+is_closed_path = False   # ¿Volvemos al inicio? (True/False)
+is_start_fixed = False   # ¿Empezamos siempre en Estrasburgo? (True/False)
 
 current_route=current_route_func(N, is_start_fixed)
 
